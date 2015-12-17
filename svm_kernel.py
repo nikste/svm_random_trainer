@@ -33,11 +33,11 @@ def fit_svm_kernel(X,Y,its=100,eta=1.,C=.1,kernel=(GaussianKernel,(1.))):
 		if yhat*Y[:,rn] > 1: G = C * W
 		else: G = C * W - Y[:,rn] * kernel[0](sp.vstack((X[:,rn] )),X,kernel[1]).flatten()
 		W -= eta/(it+1.) * G
-		if it % 100 == 0:
-			train_error = test_svm(X,Y,W,(k,(kparam)))
-			print train_error
-			train_errors.append(train_error)
-			update_plot(train_errors)
+
+		train_error = test_svm(X,Y,W,(k,(kparam)))
+		print train_error
+		train_errors.append(train_error)
+		update_plot(train_errors)
 	return [W,train_errors]
 
 def fit_svm_kernel_double_random(X,Y,its=100,eta=1.,C=.1,kernel=(GaussianKernel,(1.))):
@@ -64,6 +64,20 @@ def fit_svm_kernel_double_random(X,Y,its=100,eta=1.,C=.1,kernel=(GaussianKernel,
 			train_errors.append(train_error)
 			update_plot(train_errors)
 	return [W,train_errors]
+
+'''
+multiprocess with queue update function
+'''
+def predict_svm_kernel_double_random_threadding(x,xt,w,kernel):
+	return (w * kernel[0](sp.vstack((x)),sp.vstack((xt)),kernel[1]).T)[0]
+
+def fit_svm_kernel_double_random_one_update(q,x1,x2,y,w,pos,eta=1.,C=.1,kernel=(GaussianKernel,(1.))):
+	yhat = predict_svm_kernel_double_random_threadding(x1,x2,w,kernel)
+	if yhat*y > 1:
+		G = C * w
+	else:
+		G = C * w - y * kernel[0](sp.vstack((x1)),sp.vstack((x2)),kernel[1]).flatten()
+	q.put([G,pos])
 
 def display_list(list,figure):
 	plt.show(list)
@@ -164,21 +178,26 @@ def update_plot(data):
 	plt.pause(0.000001) #Note this correction
 
 
-if __name__ == '__main__':
+
+
+def get_settings():
 	k = GaussianKernel
 	kparam = 1.
 	reg = .001
 	N = 480
-	noise = .1#.25
+	noise = 1.#.1#.25
 	X,y = make_data_xor(N,noise)
 	iterations = 100000
+	return [k,kparam,reg,N,noise,X,y,iterations]
 
+if __name__ == '__main__':
+	k,kparam,reg,N,noise,X,y,iterations = get_settings()
 	plt.ion() ## Note this correction
 	fig=plt.figure()
 	#plt.axis([0,1000,0,1])
 
 
-	double_rand = True
+	double_rand = False
 	if double_rand:
 
 		w,train_errors = fit_svm_kernel_double_random(X,y,its=iterations,kernel=(k,(kparam)),C=10)
