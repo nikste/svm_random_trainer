@@ -11,6 +11,12 @@ def GaussianKernel(X1, X2, sigma):
    K = sp.exp(-(K ** 2) / (2. * sigma ** 2))
    return K
 
+def linearKernel(X1, X2, sigma = 1):
+    assert(X.shape[0] == X2.shape[0])
+    K = cdist(X1, X2, 'euclidean')
+    return K
+
+
 def fit_svm_kernel(X,Y,its=100,eta=1.,C=.1,kernel=(GaussianKernel,(1.))):
 	D,N = X.shape[0],X.shape[1]
 	X = sp.vstack((sp.ones((1,N)),X))
@@ -119,9 +125,10 @@ if __name__ == '__main__':
     X,y = make_data_xor(N,noise)
 
     w = fit_svm_kernel(X,y,kernel=(k,(kparam)),C=reg)
+    print "train error:",test_svm(X,y,w,(k,(kparam)))
 
     X_test,y_test = make_data_xor(N,noise)
-    print test_svm(X_test,y_test,w,(k,(kparam)))
+    print "test error:",test_svm(X_test,y_test,w,(k,(kparam)))
 
 
     make_plot_twoclass(X_test,y_test,w,kernel=(k,(kparam)))
