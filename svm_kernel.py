@@ -101,17 +101,30 @@ def make_plot_twoclass(X,Y,W,kernel):
 	pl.show()
 	pl.savefig('../graphics/svm_kernel_xor_data.pdf')
 
+def test_svm(X,Y,W,(k,(kparam))):
+	kernel = (k,(kparam))
+	error = 0
+	for rn in range(X.shape[1]):
+		yhat = predict_svm_kernel(X[:,rn],X,W,kernel)
+		if not yhat*Y[:,rn] >= 0:
+			error = error + 1
+	return error/float(X.shape[1])
 
 if __name__ == '__main__':
-	k = GaussianKernel
-	kparam = 1.
-	reg = .001
-	N = 48
-	noise = .25
-	X,y = make_data_xor(N,noise)
+    k = GaussianKernel
+    kparam = 1.
+    reg = .001
+    N = 480
+    noise = .1#.25
+    X,y = make_data_xor(N,noise)
 
-	w = fit_svm_kernel(X,y,kernel=(k,(kparam)),C=reg)
-	make_plot_twoclass(X,y,w,kernel=(k,(kparam)))
+    w = fit_svm_kernel(X,y,kernel=(k,(kparam)),C=reg)
+
+    X_test,y_test = make_data_xor(N,noise)
+    print test_svm(X_test,y_test,w,(k,(kparam)))
+
+
+    make_plot_twoclass(X_test,y_test,w,kernel=(k,(kparam)))
 
 
 
