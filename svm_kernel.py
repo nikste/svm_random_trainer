@@ -27,6 +27,9 @@ def fit_svm_kernel(X,Y,its=100,eta=1.,C=.1,kernel=(GaussianKernel,(1.))):
 		if yhat*Y[:,rn] > 1: G = C * W
 		else: G = C * W - Y[:,rn] * kernel[0](sp.vstack((X[:,rn] )),X,kernel[1]).flatten()
 		W -= eta/(it+1.) * G
+		print test_svm(X,Y,W,(k,(kparam)))
+		if it % 100 == 0:
+			make_plot_twoclass(X[1:3,:],Y,W,kernel=kernel)
 	return W
 
 def fit_svm_kernel_double_random(X,Y,its=100,eta=1.,C=.1,kernel=(GaussianKernel,(1.))):
@@ -42,8 +45,9 @@ def fit_svm_kernel_double_random(X,Y,its=100,eta=1.,C=.1,kernel=(GaussianKernel,
 		else:
 			G = C * W[rn2] - Y[:,rn] * kernel[0](sp.vstack((X[:,rn] )),sp.vstack((X[:,rn2])),kernel[1]).flatten()
 		W[rn2] -= eta/(it+1.) * G
-		#print X.shape, Y.shape, W.shape
-		#make_plot_twoclass(X,Y,W,kernel=kernel)
+		print test_svm(X,Y,W,(k,(kparam)))
+		if it % 100 == 0:
+			make_plot_twoclass(X[1:3,:],Y,W,kernel=kernel)
     return W
 
 
@@ -138,22 +142,34 @@ def test_svm(X,Y,W,(k,(kparam))):
 	return error/float(X.shape[1])
 
 if __name__ == '__main__':
-    k = GaussianKernel
-    kparam = 1.
-    reg = .001
-    N = 480
-    noise = .1#.25
-    X,y = make_data_xor(N,noise)
-
-    w = fit_svm_kernel_double_random(X,y,kernel=(k,(kparam)),C=reg)
-    print "train error:",test_svm(X,y,w,(k,(kparam)))
-
-    X_test,y_test = make_data_xor(N,noise)
-    print "test error:",test_svm(X_test,y_test,w,(k,(kparam)))
+	k = GaussianKernel
+	kparam = 1.
+	reg = .001
+	N = 480
+	noise = .1#.25
+	X,y = make_data_xor(N,noise)
+	iterations = 1000
 
 
-    make_plot_twoclass(X_test,y_test,w,kernel=(k,(kparam)))
+	double_rand = True
+	if double_rand:
+		w = fit_svm_kernel_double_random(X,y,its=iterations,kernel=(k,(kparam)),C=reg)
+		print "train error:",test_svm(X,y,w,(k,(kparam)))
 
+		X_test,y_test = make_data_xor(N,noise)
+		print "test error:",test_svm(X_test,y_test,w,(k,(kparam)))
+
+
+		make_plot_twoclass(X_test,y_test,w,kernel=(k,(kparam)))
+	else:
+		w = fit_svm_kernel(X,y,its=iterations,kernel=(k,(kparam)),C=reg)
+		print "train error:",test_svm(X,y,w,(k,(kparam)))
+
+		X_test,y_test = make_data_xor(N,noise)
+		print "test error:",test_svm(X_test,y_test,w,(k,(kparam)))
+
+
+		make_plot_twoclass(X_test,y_test,w,kernel=(k,(kparam)))
 
 
 
