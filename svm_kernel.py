@@ -29,8 +29,29 @@ def fit_svm_kernel(X,Y,its=100,eta=1.,C=.1,kernel=(GaussianKernel,(1.))):
 		W -= eta/(it+1.) * G
 	return W
 
+def fit_svm_kernel_double_random(X,Y,its=100,eta=1.,C=.1,kernel=(GaussianKernel,(1.))):
+    D,N = X.shape[0],X.shape[1]
+    X = sp.vstack((sp.ones((1,N)),X))
+    W = sp.randn(N)
+    for it in range(its):
+		rn = sp.random.randint(N)
+		rn2 = sp.random.randint(N)
+		yhat = predict_svm_kernel_double_random(X[:,rn],X[:,rn2],W[rn2],kernel)
+		if yhat*Y[:,rn] > 1:
+			G = C * W[rn2]
+		else:
+			G = C * W[rn2] - Y[:,rn] * kernel[0](sp.vstack((X[:,rn] )),sp.vstack((X[:,rn2])),kernel[1]).flatten()
+		W[rn2] -= eta/(it+1.) * G
+		#print X.shape, Y.shape, W.shape
+		#make_plot_twoclass(X,Y,W,kernel=kernel)
+    return W
+
+
 def predict_svm_kernel(x,xt,w,kernel):
 	return w.dot(kernel[0](sp.vstack((x)),xt,kernel[1]).T)
+
+def predict_svm_kernel_double_random(x,xt,w,kernel):
+    return (w * kernel[0](sp.vstack((x)),sp.vstack((xt)),kernel[1]).T)[0]
 
 def make_data_twoclass(N=50):
 	# generates some toy data
@@ -89,7 +110,7 @@ def make_plot_twoclass(X,Y,W,kernel):
 	#pl.title('SVM, Accuracy=%0.2f'%(Y==sp.sign(ypred)).mean())
 
 	pl.show()
-	pl.savefig('../graphics/svm_kernel.pdf')
+	# pl.savefig('../graphics/svm_kernel.pdf')
 
 	fig = pl.figure(figsize=(5,5))
 	fig.clf()
@@ -99,13 +120,13 @@ def make_plot_twoclass(X,Y,W,kernel):
 		pl.plot(X[0,idx], X[1,idx], colors[int(ic)]+'o',markersize=8)
 	pl.axis('tight')
 
-	pl.xlabel('$X_1$')
-	pl.ylabel('$X_2$')
-	pl.xlim((x_min,x_max))
-	pl.ylim((y_min,y_max))
-	pl.grid()
-	pl.show()
-	pl.savefig('../graphics/svm_kernel_xor_data.pdf')
+	# pl.xlabel('$X_1$')
+	# pl.ylabel('$X_2$')
+	# pl.xlim((x_min,x_max))
+	# pl.ylim((y_min,y_max))
+	# pl.grid()
+	# pl.show()
+	# pl.savefig('../graphics/svm_kernel_xor_data.pdf')
 
 def test_svm(X,Y,W,(k,(kparam))):
 	kernel = (k,(kparam))
@@ -124,7 +145,7 @@ if __name__ == '__main__':
     noise = .1#.25
     X,y = make_data_xor(N,noise)
 
-    w = fit_svm_kernel(X,y,kernel=(k,(kparam)),C=reg)
+    w = fit_svm_kernel_double_random(X,y,kernel=(k,(kparam)),C=reg)
     print "train error:",test_svm(X,y,w,(k,(kparam)))
 
     X_test,y_test = make_data_xor(N,noise)
