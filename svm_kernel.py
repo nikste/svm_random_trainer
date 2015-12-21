@@ -34,8 +34,8 @@ def fit_svm_kernel(X,Y,its=100,eta=1.,C=.1,kernel=(GaussianKernel,(1.))):
 		else: G = C * W - Y[:,rn] * kernel[0](sp.vstack((X[:,rn] )),X,kernel[1]).flatten()
 		W -= eta/(it+1.) * G
 
-		train_error = test_svm(X,Y,W,(k,(kparam)))
-		print train_error
+		train_error,train_error_points = test_svm(X,Y,W,(k,(kparam)))
+		print "train-error:",train_error
 		train_errors.append(train_error)
 		update_plot(train_errors)
 	return [W,train_errors]
@@ -71,13 +71,13 @@ multiprocess with queue update function
 def predict_svm_kernel_double_random_threadding(x,xt,w,kernel):
 	return (w * kernel[0](sp.vstack((x)),sp.vstack((xt)),kernel[1]).T)[0]
 
-def fit_svm_kernel_double_random_one_update(q,x1,x2,y,w,pos,eta=1.,C=.1,kernel=(GaussianKernel,(1.))):
+def fit_svm_kernel_double_random_one_update(x1,x2,y,w,pos,eta=1.,C=.1,kernel=(GaussianKernel,(1.))):
 	yhat = predict_svm_kernel_double_random_threadding(x1,x2,w,kernel)
 	if yhat*y > 1:
 		G = C * w
 	else:
 		G = C * w - y * kernel[0](sp.vstack((x1)),sp.vstack((x2)),kernel[1]).flatten()
-	q.put([G,pos])
+	return([G,pos])
 
 def display_list(list,figure):
 	plt.show(list)
@@ -165,17 +165,20 @@ def make_plot_twoclass(X,Y,W,kernel):
 def test_svm(X,Y,W,(k,(kparam))):
 	kernel = (k,(kparam))
 	error = 0
+	point_error = 0
 	for rn in range(X.shape[1]):
 		yhat = predict_svm_kernel(X[:,rn],X,W,kernel)
 		err = yhat*Y[:,rn]
 		if not err >= 0:
 			error -= yhat*Y[:,rn]
-	return error/float(X.shape[1])
+			point_error += 1
+	return [error/float(X.shape[1]),point_error/float(X.shape[1])]
 
 def update_plot(data):
+	plt.axis([0,len(data),0,max(data)])
 	plt.plot(data)
 	plt.show()
-	plt.pause(0.000001) #Note this correction
+	plt.pause(0.0000001) #Note this correction
 
 
 
@@ -184,14 +187,15 @@ def get_settings():
 	k = GaussianKernel
 	kparam = 1.
 	reg = .001
-	N = 480
-	noise = 1.#.1#.25
+	N = int(1000/16) * 16
+	noise = .25
 	X,y = make_data_xor(N,noise)
-	iterations = 100000
-	return [k,kparam,reg,N,noise,X,y,iterations]
+	iterations = 1000
+	num_parallelprocesses = N
+	return [k,kparam,reg,N,noise,X,y,iterations,num_parallelprocesses]
 
 if __name__ == '__main__':
-	k,kparam,reg,N,noise,X,y,iterations = get_settings()
+	k,kparam,reg,N,noise,X,y,iterations,num_parallelprocesses = get_settings()
 	plt.ion() ## Note this correction
 	fig=plt.figure()
 	#plt.axis([0,1000,0,1])
