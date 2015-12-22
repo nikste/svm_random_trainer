@@ -25,7 +25,7 @@ def generate_train_params(N,X,W,Y):
 class Iteration_thread(threading.Thread):
 
 
-    def __init__(self, threadno, iterations, X, Y, excerpt_list, discount):
+    def __init__(self, threadno, iterations, X, Y, excerpt_list, discount,stride=1):
         super(Iteration_thread, self).__init__()
         self.threadno = threadno
         self.iterations = iterations
@@ -35,6 +35,7 @@ class Iteration_thread(threading.Thread):
         self.excerpt_list = excerpt_list
         self.N = len(excerpt_list)
         self.discount = discount
+        self.stride = stride
 
     def send_gradient(self,update_message):
         global W
@@ -42,7 +43,6 @@ class Iteration_thread(threading.Thread):
         W[update_message[1]] -= self.discount * update_message[0]
 
     def compute_gradient(self):
-
         # compute gradient
         rn,rn2,x1,x2,w,y,pos = self.generate_training_params()
         argg = (x1, x2, y, w, pos, 1., .1,(svm_kernel.GaussianKernel, (1.)))
@@ -51,12 +51,24 @@ class Iteration_thread(threading.Thread):
         # update model
         self.send_gradient([w_up,pos])
 
+    '''
+    change stride to evaluate gradient against multiple points
+    '''
     def generate_training_params(self):
         global W
+        assert(self.stride <= self.X.shape[1])
+
         rn = self.excerpt_list[sp.random.randint(self.N)]
-        rn2 = self.excerpt_list[sp.random.randint(self.N)]
+
+        if self.stride > 1:
+            rn2 = self.excerpt_list[sp.random.randint(self.N - self.stride)]
+            rn3 = rn2 + self.stride
+            x2 = self.X = self.X[:,rn2:rn3]
+        else:
+            rn2 = self.excerpt_list[sp.random.randint(self.N)]
+            x2 = self.X[:,rn2]
+
         x1 = self.X[:,rn]
-        x2 = self.X[:,rn2]
         w = W[rn2]
         y = self.Y[:,rn]
         pos = rn2
@@ -95,7 +107,7 @@ def main_threads(meta_it):
     global update_counter
     global locked
 
-    serve_figure = False
+    serve_figure = True
 
     k,kparam,reg,N,noise,X,y,iterations,num_parallelprocesses,num_threads = svm_kernel.get_settings()
     Y = y
@@ -145,7 +157,7 @@ def main_threads(meta_it):
             t.start()
             threads.append(t)
 
-        discount *= pow(0.99999, (i + 1) * N/num_threads)
+        #discount *= pow(0.99999, (i + 1) )
 
         for els in threads:
             els.join()
@@ -206,7 +218,7 @@ def main_threads(meta_it):
     print "yea"
 
     # save file
-    f = open("./res/double_random_output_geg" + str(reg) + "_N" + str(N) + "_noise" + str(noise) + "_iterations" + str(iterations) + "_iterative_" + str(meta_it),"w")
+    f = open("./res/single_double_random_output_geg" + str(reg) + "_N" + str(N) + "_noise" + str(noise) + "_iterations" + str(iterations) + "_iterative_" + str(meta_it),"w")
     for l in train_errors:
         f.write(str(l) + "\n")
     f.close()
@@ -214,7 +226,7 @@ def main_threads(meta_it):
 
 def main_queue():
 
-    k,kparam,reg,N,noise,X,y,iterations,num_parallelprocesses = svm_kernel.get_settings()
+    k,kparam,reg,N,noise,X,y,iterations,num_parallelprocesses,nthreads = svm_kernel.get_settings()
     Y = y
 
     D,N = X.shape[0],X.shape[1]
@@ -236,7 +248,7 @@ def main_queue():
             ps = []
             for p in range(0,num_parallelprocesses):
                 rn,rn2,x1,x2,w,y,pos = generate_train_params(N,X,W,Y)
-                argg = (q, x1, x2, y, w, pos, 1., .1,(svm_kernel.GaussianKernel, (1.)))
+                argg = (x1, x2, y, w, pos, 1., .1,(svm_kernel.GaussianKernel, (1.)))
                 ps.append(Process(target=svm_kernel.fit_svm_kernel_double_random_one_update, args=argg))
                 ps[-1].start()
 
@@ -262,6 +274,7 @@ def main_queue():
 
 
 if __name__=='__main__':
+
     j = 9
     mini = 10 * (j - 1)
     maxi = 10 * j

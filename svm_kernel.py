@@ -186,7 +186,7 @@ def update_plot(data):
 
 
 def get_settings():
-	nthreads = 16
+	nthreads = 1
 	k = GaussianKernel
 	kparam = 1.
 	reg = .001
