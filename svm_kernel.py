@@ -68,10 +68,11 @@ def fit_svm_kernel_double_random(X,Y,its=100,eta=1.,C=.1,kernel=(GaussianKernel,
 			G = C * W[rn2] - Y[:,rn] * kernel[0](sp.vstack((X[:,rn] )),sp.vstack((X[:,rn2])),kernel[1]).flatten()
 		W[rn2] -= discount * G
 		#print eta/((it+1. + its)/float(its))
+
 		if it % 100 == 0:
-			train_error = test_svm(X,Y,W,(k,(kparam)))
-			print train_error
-			train_errors.append(train_error)
+			train_error,train_error_points = test_svm(X,Y,W,(k,(kparam)))
+			# print train_error
+			train_errors.append(train_error)#,train_error_points])
 			update_plot(train_errors)
 	return [W,train_errors]
 
@@ -91,6 +92,7 @@ def fit_svm_kernel_double_random_one_update(x1,x2,y,w,pos,eta=1.,C=.1,kernel=(Ga
 
 def display_list(list,figure):
 	plt.show(list)
+
 def predict_svm_kernel(x,xt,w,kernel):
 	return w.dot(kernel[0](sp.vstack((x)),xt,kernel[1]).T)
 
@@ -179,7 +181,8 @@ def test_svm(X,Y,W,(k,(kparam))):
 	return [error[0]/float(X.shape[1]),point_error/float(X.shape[1])]
 
 def update_plot(data):
-	plt.axis([0,len(data),0,max(data)])
+	print data
+	# plt.axis([0,len(data),0,max([max(data[0]),max(data[1])])])
 	plt.plot(data)
 	plt.show()
 	plt.pause(0.0000001) #Note this correction
@@ -192,14 +195,14 @@ def get_settings():
 	reg = .001
 	iterations = 100
 	N = int(1000/nthreads) * nthreads
-	noise = .25
+	noise = .1#.25
 	X,y = make_data_xor(N,noise)
 
 	num_parallelprocesses = N
 	return [k,kparam,reg,N,noise,X,y,iterations,num_parallelprocesses,nthreads]
 
 if __name__ == '__main__':
-	serve_figure = False
+	serve_figure = True
 	for it in range(0,100):
 
 		k,kparam,reg,N,noise,X,y,iterations,num_parallelprocesses,nthreads = get_settings()
@@ -210,7 +213,7 @@ if __name__ == '__main__':
 		#plt.axis([0,1000,0,1])
 
 
-		double_rand = False
+		double_rand = True
 		if double_rand:
 
 			w,train_errors = fit_svm_kernel_double_random(X,y,its=iterations,kernel=(k,(kparam)),C=10)

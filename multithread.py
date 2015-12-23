@@ -107,7 +107,7 @@ def main_threads(meta_it):
     global update_counter
     global locked
 
-    serve_figure = True
+    serve_figure = False
 
     k,kparam,reg,N,noise,X,y,iterations,num_parallelprocesses,num_threads = svm_kernel.get_settings()
     Y = y
@@ -157,7 +157,7 @@ def main_threads(meta_it):
             t.start()
             threads.append(t)
 
-        #discount *= pow(0.99999, (i + 1) )
+        discount *= pow(0.99999, (i + 1) )
 
         for els in threads:
             els.join()
@@ -275,7 +275,7 @@ def main_queue():
 
 if __name__=='__main__':
 
-    j = 9
+    j = 6
     mini = 10 * (j - 1)
     maxi = 10 * j
     for i in range(mini,maxi):
