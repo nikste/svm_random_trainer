@@ -54,7 +54,10 @@ def run_xor_drandom(visualize=False):
 
 if __name__ == '__main__':
     plt.ion()
-    errors = run_xor_standard(visualize=False)
-    save_results("./res/0.res",errors)
-    errors = run_xor_drandom()
-    save_results("./res/1.res",errors)
+    for i in range(0,100):
+        print i,"standard"
+        errors = run_xor_standard(visualize=False)
+        save_results("./res/experiments_iterative_random/standard_" + str(i) + ".res",errors)
+        print i,"double random"
+        errors = run_xor_drandom()
+        save_results("./res/experiments_iterative_random/drandom_" + str(i) + ".res",errors)
