@@ -1,0 +1,141 @@
+import threading
+import time
+import scipy as sp
+
+import matplotlib.pyplot as plt
+
+from run_experiments import get_settings
+from svm_kernel import GaussianKernel, fit_svm_kernel_double_random_one_update, test_svm, make_plot_twoclass
+
+
+class WildUpdater (threading.Thread):
+    def __init__(self, threadID, name, counter, startpos, X,Y,its=100,eta=1.,C=.1,kernel=(GaussianKernel,(1.))):
+        threading.Thread.__init__(self)
+        self.threadID = threadID
+        self.name = name
+        self.counter = counter
+
+        # to determine which chunk of training data it will use
+        # we copy all datapoints, so it will use alot of memory
+        # TODO: remove this is a (lazy) dirty hack.
+        self.startpos = startpos
+        # rest of update parameter
+        self.X = X
+        self.Y = Y
+        self.eta = eta
+        self.its = its
+        self.C = C
+        self.kernel = kernel
+
+
+    def run(self):
+        global threadLock,W,X,Y,errors,updatecount
+
+        D,N = self.X.shape[0],self.X.shape[1]
+        Xlocal = sp.vstack((sp.ones((1,N)),self.X))
+
+        self.endpos = int(self.startpos + 1/4.0 * N)
+
+        threadLock.acquire()
+        print "Starting " + self.name + " range:" + str(self.startpos) + " - " + str(self.endpos)
+        print "iterations:" + str(self.its) + " N:" +str(N)
+        threadLock.release()
+
+
+        discount = 1.0
+        max_its =  N
+        for it in range(self.its):
+            threadLock.acquire()
+            discount = self.eta/((updatecount+1.+max_its)/float(max_its)) # 0.99999
+
+            rn = sp.random.randint(self.startpos,self.endpos)
+            rn2 = sp.random.randint(self.startpos,self.endpos)
+            G,pos = fit_svm_kernel_double_random_one_update(Xlocal[:,rn],Xlocal[:,rn2],Y[:,rn],W[rn2],rn2,self.kernel)
+
+            # Get lock to synchronize threads
+            W[pos] -= discount * G
+
+            #compute error
+            #add to error list
+            if updatecount%N == 0:
+                err = test_svm(self.X, self.Y, W, self.kernel)[0]
+                errors.append([int(updatecount/N), err])
+                print updatecount,err
+
+            # Free lock to release next thread
+            updatecount += 1
+            threadLock.release()
+
+
+def plot_lines(d1,d2):
+	plt.plot(d1, d2, '-')
+	plt.show()
+	plt.pause(0.0000001) #Note this correction
+
+
+threadLock = threading.Lock()
+errors = []
+updatecount = 0
+
+
+
+
+def test_threading():
+    global threadLock,Y,X,W
+    k,kparam,reg,N,noise,X,y,iterations = get_settings()
+    Y=y
+    W = sp.randn(N)
+
+    threads = []
+    plt.ion()
+
+    iterations = int(iterations * N / 4.0 )
+    # Create new threads with different subsets of data
+    startpos = 0
+    thread1 = WildUpdater(1, "Thread-1", 1, startpos, X,y,its=iterations,eta=1.,C=.1,kernel=(k,(kparam)))
+    startpos = int(N/4.0)
+    thread2 = WildUpdater(2, "Thread-2", 2, startpos, X,y,its=iterations,eta=1.,C=.1,kernel=(k,(kparam)))
+    startpos = int(N/4.0) * 2
+    thread3 = WildUpdater(3, "Thread-3", 3, startpos, X,y,its=iterations,eta=1.,C=.1,kernel=(k,(kparam)))
+    startpos = int(N/4.0) * 3
+    thread4 = WildUpdater(4, "Thread-4", 4, startpos, X,y,its=iterations,eta=1.,C=.1,kernel=(k,(kparam)))
+
+    # Start new Threads
+    thread1.start()
+    thread2.start()
+    thread3.start()
+    thread4.start()
+
+    # Add threads to thread list
+    threads.append(thread1)
+    threads.append(thread2)
+    threads.append(thread3)
+    threads.append(thread4)
+
+
+
+    time.sleep(1)
+    allrunning = True
+    e1,e2 = zip(*errors)
+    plot_lines(e1,e2)
+    while(allrunning):
+
+        num_dead = 0
+        for t in threads:
+            if t.isAlive() == False:
+                num_dead += 1
+        if num_dead == len(threads):
+            break
+        make_plot_twoclass(X,Y,W,(k,(kparam)))
+        # plot shit
+        e1,e2 = zip(*errors)
+        plot_lines(e1,e2)
+    # Wait for all threads to complete
+    for t in threads:
+        t.join()
+    print "Exiting Main Thread"
+
+for i in range(0,100):
+    errors = []
+    updatecount = 0
+    test_threading()

@@ -1,3 +1,5 @@
+import os
+
 import pylab as pl
 import scipy as sp
 from scipy.linalg import eig
@@ -50,18 +52,21 @@ def fit_svm_kernel_double_random(X,Y,its=100,eta=1.,C=.1,kernel=(GaussianKernel,
 
 	errors = []
 	discount = 1.0
+
 	max_its = N
 	for it in range(its):
 		discount = eta/((it+1.+max_its)/float(max_its)) # 0.99999
 		rn = sp.random.randint(N)
 		rn2 = sp.random.randint(N)
-		yhat = predict_svm_kernel_double_random(X[:,rn],X[:,rn2],W[rn2],kernel)
-		if yhat*Y[:,rn] > 1:
-			G = C * W[rn2]
-		else:
-			G = C * W[rn2] - Y[:,rn] * kernel[0](sp.vstack((X[:,rn] )),sp.vstack((X[:,rn2])),kernel[1]).flatten()
-		W[rn2] -= discount * G
+		# yhat = predict_svm_kernel_double_random(X[:,rn],X[:,rn2],W[rn2],kernel)
+		# if yhat*Y[:,rn] > 1:
+		# 	G = C * W[rn2]
+		# else:
+		# 	G = C * W[rn2] - Y[:,rn] * kernel[0](sp.vstack((X[:,rn] )),sp.vstack((X[:,rn2])),kernel[1]).flatten()
+		# W[rn2] -= discount * G
 
+		G,pos = fit_svm_kernel_double_random_one_update(X[:,rn],X[:,rn2],Y[:,rn],W[rn2],rn2,kernel)
+		W[pos] -= discount * G
 		if it%N==0:
 			#compute error
 			#add to error list
@@ -162,7 +167,10 @@ def make_plot_twoclass(X,Y,W,kernel):
 	#pl.title('SVM, Accuracy=%0.2f'%(Y==sp.sign(ypred)).mean())
 
 	pl.show()
-	pl.savefig('./graphics/svm_kernel.pdf')
+	path1 = './graphics/svm_kernel.pdf'
+	if not os.path.exists(os.path.dirname(path1)):
+		os.makedirs(os.path.dirname(path1))
+	pl.savefig(path1)
 
 	fig = pl.figure(figsize=(5,5))
 	fig.clf()
@@ -178,6 +186,10 @@ def make_plot_twoclass(X,Y,W,kernel):
 	pl.ylim((y_min,y_max))
 	pl.grid()
 	pl.show()
+	path2 = './graphics/svm_kernel_xor_data.pdf'
+	if not os.path.exists(os.path.dirname(path2)):
+		os.makedirs(os.path.dirname(path2))
+	pl.savefig(path1)
 	pl.savefig('./graphics/svm_kernel_xor_data.pdf')
 
 	

@@ -20,7 +20,7 @@ def get_settings():
     k = svm_kernel.GaussianKernel
     kparam = 1.
     reg = .001
-    iterations = 100
+    iterations = 100#100
 
     N = 100
     noise = .1#.25
@@ -64,5 +64,5 @@ if __name__ == '__main__':
         errors = run_xor_standard(visualize=False)
         save_results("./res/experiments_iterative_random/standard_" + str(i) + ".res",errors)
         print i,"double random"
-        errors = run_xor_drandom()
+        errors = run_xor_drandom(visualize=True)
         save_results("./res/experiments_iterative_random/drandom_" + str(i) + ".res",errors)
