@@ -2,7 +2,7 @@ import os
 
 import svm_kernel
 import matplotlib.pyplot as plt
-
+import numpy as np
 from svm_kernel_multithread import fit_svm_kernel_double_random_threading
 
 '''
@@ -59,28 +59,51 @@ def run_xor_drandom(visualize=False):
 if __name__ == '__main__':
     plt.ion()
     visualize=False
+    stds = []
+    drns = []
+    drts = []
     for i in range(0,100):
         k,kparam,reg,N,noise,X,y,iterations = get_settings()
 
         # generate test data:
         X_test,Y_test = svm_kernel.make_data_xor(N, noise)
-        print i,"standard"
+        # print i,"standard"
         w,errors = svm_kernel.fit_svm_kernel(X, y, its=iterations, kernel=(k, (kparam)), C=reg, visualize=visualize)
         save_results("./res/experiments_iterative_random/standard_" + str(i) + ".res",errors)
-        test_error = svm_kernel.test_svm(X_test, Y_test, w, (k,(kparam)))[0]
-        print "error on test set:",test_error
+        test_error_std = svm_kernel.test_svm(X_test, Y_test, w, (k,(kparam)))[0]
+        # print "error on test set:",test_error_std
 
-        print i,"double random"
+        # print i,"double random"
         w,errors = svm_kernel.fit_svm_kernel_double_random(X, y, its=iterations * N, kernel=(k, (kparam)), C=reg, visualize=visualize)
         save_results("./res/experiments_iterative_random/drandom_" + str(i) + ".res",errors)
-        test_error = svm_kernel.test_svm(X_test, Y_test, w, (k,(kparam)))[0]
-        print "error on test set:",test_error
+        test_error_dr = svm_kernel.test_svm(X_test, Y_test, w, (k,(kparam)))[0]
+        # print "error on test set:",test_error_dr
 
-        print i,"double random threading"
+        # print i,"double random threading"
         w,errors = fit_svm_kernel_double_random_threading(k, kparam, reg, N, noise, X, y, iterations, visualize=visualize)
-        test_error = svm_kernel.test_svm(X_test, Y_test, w, (k,(kparam)))[0]
+        test_error_drt = svm_kernel.test_svm(X_test, Y_test, w, (k,(kparam)))[0]
         save_results("./res/experiments_iterative_random/drandom_threading_" + str(i) + ".res",errors)
-        print "error on test set:",test_error
+        # print "error on test set:",test_error_drt
+
+        print "comparison:",i
+        print "std:\t","drn:\t","drt:\t"
+        print("%.2f\t%.2f\t%.2f" % (test_error_std,test_error_dr,test_error_drt))
+        stds.append(test_error_std)
+        drns.append(test_error_dr)
+        drts.append(test_error_drt)
+
+        print "intermediates:"
+        print "comparison:",i
+
+        print "mean:",np.mean(stds),"std:",np.std(stds)
+        print "mean:",np.mean(drns),"std:",np.std(drns)
+        print "mean:",np.mean(drts),"std:",np.std(drts)
+    print "finals:"
+    print "comparison:",i
+
+    print "mean:",np.mean(stds),"std:",np.std(stds)
+    print "mean:",np.mean(drns),"std:",np.std(drns)
+    print "mean:",np.mean(drts),"std:",np.std(drts)
 
 # if __name__ == '__main__':
 #     plt.ion()

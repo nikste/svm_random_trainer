@@ -37,16 +37,15 @@ class WildUpdater (threading.Thread):
 
         self.endpos = int(self.startpos + 1/self.num_threads * N)
 
-        threadLock.acquire()
+        # threadLock.acquire()
         # print "Starting " + self.name + " range:" + str(self.startpos) + " - " + str(self.endpos)
         # print "iterations:" + str(self.its) + " N:" +str(N)
-        threadLock.release()
+        # threadLock.release()
 
 
         discount = 1.0
         max_its =  N
         for it in range(self.its):
-            threadLock.acquire()
             discount = self.eta/((updatecount+1.+max_its)/float(max_its)) # 0.99999
             #print discount
             rn = sp.random.randint(self.startpos,self.endpos)
@@ -56,6 +55,7 @@ class WildUpdater (threading.Thread):
             # Get lock to synchronize threads
             W[pos] -= discount * G
 
+            threadLock.acquire()
             #compute error
             #add to error list
             if updatecount%N == 0:
