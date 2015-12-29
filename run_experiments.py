@@ -1,4 +1,6 @@
-import svm_kernel_new
+import os
+
+import svm_kernel
 import matplotlib.pyplot as plt
 
 
@@ -15,19 +17,22 @@ def update_plot(data):
 generate experiment settings
 '''
 def get_settings():
-    k = svm_kernel_new.GaussianKernel
+    k = svm_kernel.GaussianKernel
     kparam = 1.
     reg = .001
     iterations = 100
 
     N = 100
     noise = .1#.25
-    X,y = svm_kernel_new.make_data_xor(N,noise)
+    X,y = svm_kernel.make_data_xor(N, noise)
 
     return [k,kparam,reg,N,noise,X,y,iterations]
 
 
 def save_results(filename,data):
+    if not os.path.exists(os.path.dirname(filename)):
+        os.makedirs(os.path.dirname(filename))
+
     f = open(filename,'w')
     for el in data:
         f.write(str(el)+"\n")
@@ -38,7 +43,7 @@ runs standard kernel svm on xor data generated from gaussians
 '''
 def run_xor_standard(visualize=False):
     k,kparam,reg,N,noise,X,y,iterations = get_settings()
-    w,errors = svm_kernel_new.fit_svm_kernel(X,y,its=iterations,kernel=(k,(kparam)),C=reg,visualize=visualize)
+    w,errors = svm_kernel.fit_svm_kernel(X, y, its=iterations, kernel=(k, (kparam)), C=reg, visualize=visualize)
     #svm_kernel_new.make_plot_twoclass(X,y,w,kernel=(k,(kparam)))
     return errors
 '''
@@ -46,7 +51,7 @@ runs double random kernel svm on xor data generated from gaussians
 '''
 def run_xor_drandom(visualize=False):
     k,kparam,reg,N,noise,X,y,iterations = get_settings()
-    w,errors = svm_kernel_new.fit_svm_kernel_double_random(X,y,its=iterations*N,kernel=(k,(kparam)),C=reg,visualize=visualize)
+    w,errors = svm_kernel.fit_svm_kernel_double_random(X, y, its=iterations * N, kernel=(k, (kparam)), C=reg, visualize=visualize)
     #svm_kernel_new.make_plot_twoclass(X,y,w,kernel=(k,(kparam)))
     return errors
 

@@ -1,14 +1,17 @@
 import pylab as pl
 import scipy as sp
-import time
 from scipy.linalg import eig
-import numpy as np
 from numpy.random import multivariate_normal as mvn
+import numpy as np
 import pdb
 from scipy.spatial.distance import cdist
+
 import matplotlib.pyplot as plt
 
-
+def plot(data):
+	plt.plot(data)
+	plt.show()
+	plt.pause(0.0000001) #Note this correction
 
 def GaussianKernel(X1, X2, sigma):
    assert(X1.shape[0] == X2.shape[0])
@@ -16,49 +19,40 @@ def GaussianKernel(X1, X2, sigma):
    K = sp.exp(-(K ** 2) / (2. * sigma ** 2))
    return K
 
-def linearKernel(X1, X2, sigma = 1):
-    assert(X.shape[0] == X2.shape[0])
-    K = cdist(X1, X2, 'euclidean')
-    return K
-
-
-def fit_svm_kernel(X,Y,its=100,eta=1.,C=.1,kernel=(GaussianKernel,(1.)),serve_figure=False):
-
+def fit_svm_kernel(X,Y,its=100,eta=1.,C=.1,kernel=(GaussianKernel,(1.)),visualize=False):
 	D,N = X.shape[0],X.shape[1]
 	X = sp.vstack((sp.ones((1,N)),X))
 	W = sp.randn(N)
 
-	train_errors = []
-
-	train_error,train_error_points = test_svm(X,Y,W,(k,(kparam)))
-	print "train-error:",train_error
-	train_errors.append(train_error)
-
+	errors = []
 	for it in range(its):
 		rn = sp.random.randint(N)
 		yhat = predict_svm_kernel(X[:,rn],X,W,kernel)
+		discount = eta/(it+1.)
 		if yhat*Y[:,rn] > 1: G = C * W
 		else: G = C * W - Y[:,rn] * kernel[0](sp.vstack((X[:,rn] )),X,kernel[1]).flatten()
-		W -= eta/(it+1.) * G
+		W -= discount * G
+		errors.append(test_svm(X,Y,W,kernel)[0])
 
-		train_error,train_error_points = test_svm(X,Y,W,(k,(kparam)))
-		print "train-error:",train_error
-		train_errors.append(train_error)
-		if serve_figure:
-			update_plot(train_errors)
-	return [W,train_errors]
+		if visualize:
+			print "discount:",discount
+			plot(errors)
+	return W,errors
 
-def fit_svm_kernel_double_random(X,Y,its=100,eta=1.,C=.1,kernel=(GaussianKernel,(1.))):
+
+'''
+updates with two points only
+'''
+def fit_svm_kernel_double_random(X,Y,its=100,eta=1.,C=.1,kernel=(GaussianKernel,(1.)),visualize=False):
 	D,N = X.shape[0],X.shape[1]
 	X = sp.vstack((sp.ones((1,N)),X))
 	W = sp.randn(N)
 
-	#plotting
-	#train errors
-	train_errors = []
+	errors = []
 	discount = 1.0
+	max_its = N
 	for it in range(its):
-		discount *= 0.99999 # eta/(it+1.)
+		discount = eta/((it+1.+max_its)/float(max_its)) # 0.99999
 		rn = sp.random.randint(N)
 		rn2 = sp.random.randint(N)
 		yhat = predict_svm_kernel_double_random(X[:,rn],X[:,rn2],W[rn2],kernel)
@@ -67,37 +61,49 @@ def fit_svm_kernel_double_random(X,Y,its=100,eta=1.,C=.1,kernel=(GaussianKernel,
 		else:
 			G = C * W[rn2] - Y[:,rn] * kernel[0](sp.vstack((X[:,rn] )),sp.vstack((X[:,rn2])),kernel[1]).flatten()
 		W[rn2] -= discount * G
-		#print eta/((it+1. + its)/float(its))
 
-		if it % 100 == 0:
-			train_error,train_error_points = test_svm(X,Y,W,(k,(kparam)))
-			# print train_error
-			train_errors.append(train_error)#,train_error_points])
-			update_plot(train_errors)
-	return [W,train_errors]
+		if it%N==0:
+			#compute error
+			#add to error list
+			errors.append(test_svm(X,Y,W,kernel)[0])
+			if visualize:
+				print "discount:",discount
+				#plot result
+				plot(errors)
+
+	return [W,errors]
 
 '''
-multiprocess with queue update function
+parameter update two datapoints
 '''
-def predict_svm_kernel_double_random_threadding(x,xt,w,kernel):
-	return (w * kernel[0](sp.vstack((x)),sp.vstack((xt)),kernel[1]).T)[0]
-
 def fit_svm_kernel_double_random_one_update(x1,x2,y,w,pos,eta=1.,C=.1,kernel=(GaussianKernel,(1.))):
-	yhat = predict_svm_kernel_double_random_threadding(x1,x2,w,kernel)
+	yhat = predict_svm_kernel_double_random(x1,x2,w,kernel)
 	if yhat*y > 1:
 		G = C * w
 	else:
 		G = C * w - y * kernel[0](sp.vstack((x1)),sp.vstack((x2)),kernel[1]).flatten()
 	return([G,pos])
 
-def display_list(list,figure):
-	plt.show(list)
+'''
+gradient with two datapoints only
+'''
+def predict_svm_kernel_double_random(x,xt,w,kernel):
+    return (w * kernel[0](sp.vstack((x)),sp.vstack((xt)),kernel[1]).T)[0]
+
+def test_svm(X,Y,W,(k,(kparam))):
+	kernel = (k,(kparam))
+	error = np.zeros(1)
+	point_error = 0
+	for rn in range(X.shape[1]):
+		yhat = predict_svm_kernel(X[:,rn],X,W,kernel)
+		err = yhat*Y[:,rn]
+		if not err >= 0:
+			error -= yhat*Y[:,rn]
+			point_error += 1
+	return [error[0]/float(X.shape[1]),point_error/float(X.shape[1])]
 
 def predict_svm_kernel(x,xt,w,kernel):
 	return w.dot(kernel[0](sp.vstack((x)),xt,kernel[1]).T)
-
-def predict_svm_kernel_double_random(x,xt,w,kernel):
-    return (w * kernel[0](sp.vstack((x)),sp.vstack((xt)),kernel[1]).T)[0]
 
 def make_data_twoclass(N=50):
 	# generates some toy data
@@ -106,7 +112,7 @@ def make_data_twoclass(N=50):
 	X = sp.hstack((mvn(mu[:,0],C,N/2).T, mvn(mu[:,1],C,N/2).T))
 	Y = sp.hstack((sp.ones((1,N/2.)),-sp.ones((1,N/2.))))
 	return X,Y
-
+	
 def make_data_xor(N=80,noise=.25):
 	# generates some toy data
 	mu = sp.array([[-1,1],[1,1]]).T
@@ -132,7 +138,7 @@ def make_plot_twoclass(X,Y,W,kernel):
 	y_min, y_max = X[1,:].min() - 1, X[1,:].max() + 1
 	xx, yy = sp.meshgrid(sp.arange(x_min, x_max, h),
                      sp.arange(y_min, y_max, h))
-
+                     
 	Z = predict_svm_kernel(sp.c_[sp.ones(xx.ravel().shape[-1]), xx.ravel(), yy.ravel()].T,sp.vstack((sp.ones((1,X.shape[-1])),X)),W,kernel).reshape(xx.shape)
 	cs = pl.contourf(xx, yy, Z,alpha=.5)
 	pl.axis('tight')
@@ -156,7 +162,7 @@ def make_plot_twoclass(X,Y,W,kernel):
 	#pl.title('SVM, Accuracy=%0.2f'%(Y==sp.sign(ypred)).mean())
 
 	pl.show()
-	# pl.savefig('../graphics/svm_kernel.pdf')
+	pl.savefig('./graphics/svm_kernel.pdf')
 
 	fig = pl.figure(figsize=(5,5))
 	fig.clf()
@@ -166,82 +172,26 @@ def make_plot_twoclass(X,Y,W,kernel):
 		pl.plot(X[0,idx], X[1,idx], colors[int(ic)]+'o',markersize=8)
 	pl.axis('tight')
 
+	pl.xlabel('$X_1$')
+	pl.ylabel('$X_2$')
+	pl.xlim((x_min,x_max))
+	pl.ylim((y_min,y_max))
+	pl.grid()
+	pl.show()
+	pl.savefig('./graphics/svm_kernel_xor_data.pdf')
 
-def test_svm(X,Y,W,(k,(kparam))):
-	kernel = (k,(kparam))
-	error = 0
-	point_error = 0
-	for rn in range(X.shape[1]):
-		yhat = predict_svm_kernel(X[:,rn],X,W,kernel)
-		err = yhat*Y[:,rn]
-		if not err >= 0:
-			error -= yhat*Y[:,rn]
-			point_error += 1
-	print error[0]/float(X.shape[1])
-	return [error[0]/float(X.shape[1]),point_error/float(X.shape[1])]
-
-def update_plot(data):
-	print data
-	# plt.axis([0,len(data),0,max([max(data[0]),max(data[1])])])
-	plt.plot(data)
-	plt.show()
-	plt.pause(0.0000001) #Note this correction
-
-
-def get_settings():
-	nthreads = 1
+	
+if __name__ == '__main__':
 	k = GaussianKernel
 	kparam = 1.
 	reg = .001
-	iterations = 100
-	N = int(1000/nthreads) * nthreads
-	noise = .1#.25
+	N = 48
+	noise = .25
 	X,y = make_data_xor(N,noise)
-
-	num_parallelprocesses = N
-	return [k,kparam,reg,N,noise,X,y,iterations,num_parallelprocesses,nthreads]
-
-if __name__ == '__main__':
-	serve_figure = True
-	for it in range(0,100):
-
-		k,kparam,reg,N,noise,X,y,iterations,num_parallelprocesses,nthreads = get_settings()
-
-		if serve_figure:
-			plt.ion() ## Note this correction
-			fig=plt.figure()
-		#plt.axis([0,1000,0,1])
-
-
-		double_rand = True
-		if double_rand:
-
-			w,train_errors = fit_svm_kernel_double_random(X,y,its=iterations,kernel=(k,(kparam)),C=10)
-			print "train error:",test_svm(X,y,w,(k,(kparam)))
-			# plt.plot(train_errors)
-			# plt.show()
-			X_test,y_test = make_data_xor(N,noise)
-			print "test error:",test_svm(X_test,y_test,w,(k,(kparam)))
-			if serve_figure:
-				make_plot_twoclass(X_test,y_test,w,kernel=(k,(kparam)))
-		else:
-			w,train_errors = fit_svm_kernel(X,y,its=iterations,kernel=(k,(kparam)),C=reg)
-			print "train error:",test_svm(X,y,w,(k,(kparam)))
-
-			# save file
-			f = open("./res/output_reg" + str(reg) + "_N" + str(N) + "_noise" + str(noise) + "_iterations" + str(iterations) + "_iterative_" + str(it),"w")
-			for l in train_errors:
-				f.write(str(l) + "\n")
-			f.close()
-
-			if serve_figure:
-				plt.plot(train_errors)
-				plt.show()
-
-			X_test,y_test = make_data_xor(N,noise)
-			print "test error:",test_svm(X_test,y_test,w,(k,(kparam)))
-
-			#make_plot_twoclass(X_test,y_test,w,kernel=(k,(kparam)))
-
+	
+	w = fit_svm_kernel(X,y,kernel=(k,(kparam)),C=reg)
+	make_plot_twoclass(X,y,w,kernel=(k,(kparam)))	
+	
+	
 
 
