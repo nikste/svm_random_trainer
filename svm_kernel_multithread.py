@@ -54,8 +54,8 @@ class WildUpdater (threading.Thread):
 
             # Get lock to synchronize threads
             W[pos] -= discount * G
+            #threadLock.acquire()
 
-            threadLock.acquire()
             #compute error
             #add to error list
             if updatecount%N == 0:
@@ -64,7 +64,7 @@ class WildUpdater (threading.Thread):
 
             # Free lock to release next thread
             updatecount += 1
-            threadLock.release()
+            #threadLock.release()
 
 
 def plot_lines(d1,d2):

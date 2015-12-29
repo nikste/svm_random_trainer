@@ -62,11 +62,11 @@ if __name__ == '__main__':
     stds = []
     drns = []
     drts = []
+    k,kparam,reg,N,noise,X,y,iterations = get_settings()
+    X_test,Y_test = svm_kernel.make_data_xor(N, noise)
     for i in range(0,100):
-        k,kparam,reg,N,noise,X,y,iterations = get_settings()
 
         # generate test data:
-        X_test,Y_test = svm_kernel.make_data_xor(N, noise)
         # print i,"standard"
         w,errors = svm_kernel.fit_svm_kernel(X, y, its=iterations, kernel=(k, (kparam)), C=reg, visualize=visualize)
         save_results("./res/experiments_iterative_random/standard_" + str(i) + ".res",errors)
@@ -87,7 +87,7 @@ if __name__ == '__main__':
 
         print "comparison:",i
         print "std:\t","drn:\t","drt:\t"
-        print("%.2f\t%.2f\t%.2f" % (test_error_std,test_error_dr,test_error_drt))
+        # print("%.2f\t%.2f\t%.2f" % (test_error_std,test_error_dr,test_error_drt))
         stds.append(test_error_std)
         drns.append(test_error_dr)
         drts.append(test_error_drt)
