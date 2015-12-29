@@ -37,7 +37,7 @@ def fit_svm_kernel(X,Y,its=100,eta=1.,C=.1,kernel=(GaussianKernel,(1.)),visualiz
 		errors.append(test_svm(X,Y,W,kernel)[0])
 
 		if visualize:
-			print "discount:",discount
+			#print "discount:",discount
 			plot(errors)
 	return W,errors
 
@@ -54,10 +54,13 @@ def fit_svm_kernel_double_random(X,Y,its=100,eta=1.,C=.1,kernel=(GaussianKernel,
 	discount = 1.0
 
 	max_its = N
+	rns = []
+	rn2s = []
 	for it in range(its):
 		discount = eta/((it+1.+max_its)/float(max_its)) # 0.99999
 		rn = sp.random.randint(N)
 		rn2 = sp.random.randint(N)
+
 		# yhat = predict_svm_kernel_double_random(X[:,rn],X[:,rn2],W[rn2],kernel)
 		# if yhat*Y[:,rn] > 1:
 		# 	G = C * W[rn2]
@@ -72,10 +75,9 @@ def fit_svm_kernel_double_random(X,Y,its=100,eta=1.,C=.1,kernel=(GaussianKernel,
 			#add to error list
 			errors.append(test_svm(X,Y,W,kernel)[0])
 			if visualize:
-				print "discount:",discount
+				#print "discount:",discount
 				#plot result
 				plot(errors)
-
 	return [W,errors]
 
 '''

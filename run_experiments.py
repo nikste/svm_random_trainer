@@ -3,7 +3,7 @@ import os
 import svm_kernel
 import matplotlib.pyplot as plt
 
-
+from svm_kernel_multithread import fit_svm_kernel_double_random_threading
 
 '''
 draws plot with new data
@@ -23,7 +23,7 @@ def get_settings():
     iterations = 100#100
 
     N = 100
-    noise = .1#.25
+    noise = .25#.1
     X,y = svm_kernel.make_data_xor(N, noise)
 
     return [k,kparam,reg,N,noise,X,y,iterations]
@@ -56,13 +56,39 @@ def run_xor_drandom(visualize=False):
     return errors
 
 
-
 if __name__ == '__main__':
     plt.ion()
+    visualize=False
     for i in range(0,100):
+        k,kparam,reg,N,noise,X,y,iterations = get_settings()
+
+        # generate test data:
+        X_test,Y_test = svm_kernel.make_data_xor(N, noise)
         print i,"standard"
-        errors = run_xor_standard(visualize=False)
+        w,errors = svm_kernel.fit_svm_kernel(X, y, its=iterations, kernel=(k, (kparam)), C=reg, visualize=visualize)
         save_results("./res/experiments_iterative_random/standard_" + str(i) + ".res",errors)
+        test_error = svm_kernel.test_svm(X_test, Y_test, w, (k,(kparam)))[0]
+        print "error on test set:",test_error
+
         print i,"double random"
-        errors = run_xor_drandom(visualize=True)
+        w,errors = svm_kernel.fit_svm_kernel_double_random(X, y, its=iterations * N, kernel=(k, (kparam)), C=reg, visualize=visualize)
         save_results("./res/experiments_iterative_random/drandom_" + str(i) + ".res",errors)
+        test_error = svm_kernel.test_svm(X_test, Y_test, w, (k,(kparam)))[0]
+        print "error on test set:",test_error
+
+        print i,"double random threading"
+        w,errors = fit_svm_kernel_double_random_threading(k, kparam, reg, N, noise, X, y, iterations, visualize=visualize)
+        test_error = svm_kernel.test_svm(X_test, Y_test, w, (k,(kparam)))[0]
+        save_results("./res/experiments_iterative_random/drandom_threading_" + str(i) + ".res",errors)
+        print "error on test set:",test_error
+
+# if __name__ == '__main__':
+#     plt.ion()
+#     for i in range(0,100):
+#         print i,"standard"
+#         errors = run_xor_standard(visualize=False)
+#         save_results("./res/experiments_iterative_random/standard_" + str(i) + ".res",errors)
+#         print i,"double random"
+#         errors = run_xor_drandom(visualize=True)
+#         save_results("./res/experiments_iterative_random/drandom_" + str(i) + ".res",errors)
+#         print i,"double random threading"
