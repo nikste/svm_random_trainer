@@ -21,10 +21,10 @@ def GaussianKernel(X1, X2, sigma):
    K = sp.exp(-(K ** 2) / (2. * sigma ** 2))
    return K
 
-def fit_svm_kernel(X,Y,its=100,eta=1.,C=.1,kernel=(GaussianKernel,(1.)),visualize=False):
+def fit_svm_kernel(W,X,Y,its=100,eta=1.,C=.1,kernel=(GaussianKernel,(1.)),visualize=False):
 	D,N = X.shape[0],X.shape[1]
 	X = sp.vstack((sp.ones((1,N)),X))
-	W = sp.randn(N)
+
 
 	errors = []
 	for it in range(its):
@@ -45,10 +45,9 @@ def fit_svm_kernel(X,Y,its=100,eta=1.,C=.1,kernel=(GaussianKernel,(1.)),visualiz
 '''
 updates with two points only
 '''
-def fit_svm_kernel_double_random(X,Y,its=100,eta=1.,C=.1,kernel=(GaussianKernel,(1.)),visualize=False):
+def fit_svm_kernel_double_random(W,X,Y,its=100,eta=1.,C=.1,kernel=(GaussianKernel,(1.)),visualize=False):
 	D,N = X.shape[0],X.shape[1]
 	X = sp.vstack((sp.ones((1,N)),X))
-	W = sp.randn(N)
 
 	errors = []
 	discount = 1.0

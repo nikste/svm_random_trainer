@@ -77,8 +77,9 @@ def plot_lines(d1,d2):
 
 updatecount = 0
 threadLock = threading.Lock()
-def fit_svm_kernel_double_random_threading(k, kparam, reg, N, noise, X, y, iterations, visualize=False):
+def fit_svm_kernel_double_random_threading(W_input,k, kparam, reg, N, noise, X, y, iterations, visualize=False):
     global threadLock,updatecount,Y,W,errors
+    W = W_input.copy()
 
     threadLock = threading.Lock()
     updatecount = 0
@@ -87,7 +88,6 @@ def fit_svm_kernel_double_random_threading(k, kparam, reg, N, noise, X, y, itera
     #global threadLock,Y,X,W
     #k,kparam,reg,N,noise,X,y,iterations = get_settings()
     Y=y
-    W = sp.randn(N)
 
     threads = []
     plt.ion()

@@ -4,6 +4,7 @@ import svm_kernel
 import matplotlib.pyplot as plt
 import numpy as np
 from svm_kernel_multithread import fit_svm_kernel_double_random_threading
+import scipy as sp
 
 '''
 draws plot with new data
@@ -64,23 +65,30 @@ if __name__ == '__main__':
     drts = []
     k,kparam,reg,N,noise,X,y,iterations = get_settings()
     X_test,Y_test = svm_kernel.make_data_xor(N, noise)
+    W_org = sp.randn(N)
     for i in range(0,100):
 
         # generate test data:
         # print i,"standard"
-        w,errors = svm_kernel.fit_svm_kernel(X, y, its=iterations, kernel=(k, (kparam)), C=reg, visualize=visualize)
+        W = W_org.copy()
+        print svm_kernel.test_svm(X_test, Y_test, W, (k,(kparam)))[0]
+        w,errors = svm_kernel.fit_svm_kernel(W, X, y, its=iterations, kernel=(k, (kparam)), C=reg, visualize=visualize)
         save_results("./res/experiments_iterative_random/standard_" + str(i) + ".res",errors)
         test_error_std = svm_kernel.test_svm(X_test, Y_test, w, (k,(kparam)))[0]
         # print "error on test set:",test_error_std
 
+        W = W_org.copy()
+        print svm_kernel.test_svm(X_test, Y_test, W, (k,(kparam)))[0]
         # print i,"double random"
-        w,errors = svm_kernel.fit_svm_kernel_double_random(X, y, its=iterations * N, kernel=(k, (kparam)), C=reg, visualize=visualize)
+        w,errors = svm_kernel.fit_svm_kernel_double_random(W, X, y, its=iterations * N, kernel=(k, (kparam)), C=reg, visualize=visualize)
         save_results("./res/experiments_iterative_random/drandom_" + str(i) + ".res",errors)
         test_error_dr = svm_kernel.test_svm(X_test, Y_test, w, (k,(kparam)))[0]
         # print "error on test set:",test_error_dr
 
+        W = W_org.copy()
+        print svm_kernel.test_svm(X_test, Y_test, W, (k,(kparam)))[0]
         # print i,"double random threading"
-        w,errors = fit_svm_kernel_double_random_threading(k, kparam, reg, N, noise, X, y, iterations, visualize=visualize)
+        w,errors = fit_svm_kernel_double_random_threading(W, k, kparam, reg, N, noise, X, y, iterations, visualize=visualize)
         test_error_drt = svm_kernel.test_svm(X_test, Y_test, w, (k,(kparam)))[0]
         save_results("./res/experiments_iterative_random/drandom_threading_" + str(i) + ".res",errors)
         # print "error on test set:",test_error_drt
