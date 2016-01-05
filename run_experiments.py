@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from svm_kernel_multithread import fit_svm_kernel_double_random_threading
 import scipy as sp
+import time
 
 '''
 draws plot with new data
@@ -21,9 +22,9 @@ def get_settings():
     k = svm_kernel.GaussianKernel
     kparam = 1.
     reg = .001
-    iterations = 5#100
+    iterations = 100
 
-    N = 1000
+    N = 100
     noise = .1 #.5
     X,y = svm_kernel.make_data_xor(N, noise)
 
@@ -39,6 +40,17 @@ def save_results(filename,data):
         f.write(str(el)+"\n")
     f.close()
 
+def save_results_all(filename,data):
+    if not os.path.exists(os.path.dirname(filename)):
+        os.makedirs(os.path.dirname(filename))
+    f = open(filename,'w')
+    # transpose
+    data_transposed = [list(x) for x in zip(*data)]
+    for els in data_transposed:
+        for el in els:
+            f.write(str(el)+";")
+        f.write("\n")
+    f.close()
 '''
 runs standard kernel svm on xor data generated from gaussians
 '''
@@ -59,35 +71,56 @@ def run_xor_drandom(visualize=False):
 
 
 if __name__ == '__main__':
-    visualize=True
+    visualize=False
     plt.ion()
     k,kparam,reg,N,noise,X,y,iterations = get_settings()
     X_test,Y_test = svm_kernel.make_data_xor(N, noise)
     W_org = sp.randn(N)
 
-    for i in range(0,100):
-        fig0 = plt.figure(0)
+    t_start_full = time.time();
+    maxits = 100
+
+    errors_std_all = []
+    errors_drnd_all = []
+    errors_drnt_all = []
+
+    for i in range(0 + 1,maxits + 1):
+        t_start = time.time()
+        if visualize:
+            fig0 = plt.figure(0)
         W_std = W_org.copy()
-        print svm_kernel.test_svm(X_test, Y_test, W_std, (k,(kparam)))[0]
+        #print svm_kernel.test_svm(X_test, Y_test, W_std, (k,(kparam)))[0]
         w_std,errors_std = svm_kernel.fit_svm_kernel(W_std, X, y, its=iterations, kernel=(k, (kparam)), C=reg, visualize=visualize)
-        save_results("./res/experiments_iterative_random/standard_" + str(i) + ".res",errors_std)
+        errors_std_all.append(errors_std)
+        # save_results("./res/experiments_iterative_random/standard_" + str(i) + ".res",errors_std)
         # test_error_std = svm_kernel.test_svm(X_test, Y_test, w_std, (k,(kparam)))[0]
         # print "test_error_std:",test_error_std
-
-        fig1 = plt.figure(1)
+        if visualize:
+            fig1 = plt.figure(1)
         W_drnd = W_org.copy()
-        print svm_kernel.test_svm(X_test, Y_test, W_drnd, (k,(kparam)))[0]
+        #print svm_kernel.test_svm(X_test, Y_test, W_drnd, (k,(kparam)))[0]
         w_drnd,errors_drnd = svm_kernel.fit_svm_kernel_double_random(W_drnd, X, y, its=iterations * N, kernel=(k, (kparam)), C=reg, visualize=visualize)
-        save_results("./res/experiments_iterative_random/drandom_" + str(i) + ".res",errors_drnd)
+        errors_drnd_all.append(errors_drnd)
+        # save_results("./res/experiments_iterative_random/drandom_" + str(i) + ".res",errors_drnd)
         # test_error_drnd = svm_kernel.test_svm(X_test, Y_test, w_drnd, (k,(kparam)))[0]
         # print "test_error_drnd:",test_error_drnd
-
-        fig1 = plt.figure(2)
+        if visualize:
+            fig1 = plt.figure(2)
         W_drth = W_org.copy()
-        print svm_kernel.test_svm(X_test, Y_test, W_drth, (k,(kparam)))[0]
-        w_drth,errors = fit_svm_kernel_double_random_threading(W_drth, k, kparam, reg, N, noise, X, y, iterations *N , visualize=visualize)
-        test_error_drt,errors_drnt = svm_kernel.test_svm(X_test, Y_test, w_drth, (k,(kparam)))[0]
-        save_results("./res/experiments_iterative_random/drandomthreading_" + str(i) + ".res",errors_drnt)
+        #print svm_kernel.test_svm(X_test, Y_test, W_drth, (k,(kparam)))[0]
+        w_drth,errors_drnt = fit_svm_kernel_double_random_threading(W_drth, k, kparam, reg, N, noise, X, y, iterations * N , visualize=visualize)
+        errors_drnt_all.append(errors_drnt)
+        # save_results("./res/experiments_iterative_random/drandomthreading_" + str(i) + ".res",errors_drnt)
+        t_end = time.time()
+
+        full_time_left = (t_end-t_start_full)/i * (maxits - i) / 60.0
+        minutes_left = int(full_time_left)
+        seconds_left = int((full_time_left % 1) * 60)
+        print "computing iteration:",i,"of",maxits,"took:",t_end-t_start,"s; estimated duration left:",minutes_left,":",seconds_left
+
+    save_results_all("./res/experiments/std_all.res", errors_std_all)
+    save_results_all("./res/experiments/drandom_all.res", errors_drnd_all)
+    save_results_all("./res/experiments/drandomthreading_all.res", errors_drnt_all)
 
 # if __name__ == '__main__':
 #     plt.ion()
