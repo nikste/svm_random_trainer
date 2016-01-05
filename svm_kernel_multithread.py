@@ -30,7 +30,7 @@ class WildUpdater (threading.Thread):
 
 
     def run(self):
-        global threadLock,W,X,Y,errors,updatecount
+        global threadLock,W_glob,X,Y,errors,updatecount
 
         D,N = self.X.shape[0],self.X.shape[1]
         Xlocal = sp.vstack((sp.ones((1,N)),self.X))
@@ -46,25 +46,35 @@ class WildUpdater (threading.Thread):
         discount = 1.0
         max_its =  N
         for it in range(self.its):
-            discount = self.eta/((updatecount+1.+max_its)/float(max_its)) # 0.99999
-            #print discount
-            rn = sp.random.randint(self.startpos,self.endpos)
-            rn2 = sp.random.randint(self.startpos,self.endpos)
-            G,pos = fit_svm_kernel_double_random_one_update(Xlocal[:,rn],Xlocal[:,rn2],Y[:,rn],W[rn2],rn2,self.kernel)
 
-            # Get lock to synchronize threads
-            W[pos] -= discount * G
-            #threadLock.acquire()
-
+            threadLock.acquire()
             #compute error
             #add to error list
             if updatecount%N == 0:
-                err = test_svm(self.X, self.Y, W, self.kernel)[0]
+                err = test_svm(self.X, self.Y, W_glob, self.kernel)[0]
                 errors.append([int(updatecount/N), err])
+
 
             # Free lock to release next thread
             updatecount += 1
-            #threadLock.release()
+            threadLock.release()
+
+
+            discount = self.eta/((updatecount+1.+max_its)/float(max_its)) # 0.99999
+            #print discount
+
+            rn = sp.random.randint(self.startpos,self.endpos)
+            rn2 = sp.random.randint(self.startpos,self.endpos)
+            # if self.threadID == 1 and it < 3:
+            #     print self.threadID,it,rn,rn2
+
+            G,pos = fit_svm_kernel_double_random_one_update(Xlocal[:,rn],Xlocal[:,rn2],Y[:,rn], W_glob[rn2], rn2, self.kernel)
+
+            # Get lock to synchronize threads
+            W_glob[pos] -= discount * G
+
+
+
 
 
 def plot_lines(d1,d2):
@@ -77,9 +87,9 @@ def plot_lines(d1,d2):
 
 updatecount = 0
 threadLock = threading.Lock()
-def fit_svm_kernel_double_random_threading(W_input,k, kparam, reg, N, noise, X, y, iterations, visualize=False):
-    global threadLock,updatecount,Y,W,errors
-    W = W_input.copy()
+def fit_svm_kernel_double_random_threading(W_drth, k, kparam, reg, N, noise, X, y, iterations, visualize=False):
+    global threadLock,updatecount,Y,W_glob,errors
+    W_glob = W_drth.copy()
 
     threadLock = threading.Lock()
     updatecount = 0
@@ -93,7 +103,7 @@ def fit_svm_kernel_double_random_threading(W_input,k, kparam, reg, N, noise, X, 
     plt.ion()
     n_threads = 8.0
 
-    iterations = int(iterations * N / n_threads )
+    iterations = int(iterations / n_threads )
     # print iterations * n_threads
     # Create new threads with different subsets of data
     startpos = 0
@@ -136,10 +146,8 @@ def fit_svm_kernel_double_random_threading(W_input,k, kparam, reg, N, noise, X, 
 
 
     if visualize:
-        time.sleep(1)
+        #time.sleep(2)
         allrunning = True
-        e1,e2 = zip(*errors)
-        plot_lines(e1,e2)
         while(allrunning):
 
             num_dead = 0
@@ -150,13 +158,15 @@ def fit_svm_kernel_double_random_threading(W_input,k, kparam, reg, N, noise, X, 
                 break
             #make_plot_twoclass(X,Y,W,(k,(kparam)))
             # plot shit
-            e1,e2 = zip(*errors)
-            plot_lines(e1,e2)
+            if len(errors) > 0:
+                e1,e2 = zip(*errors)
+                plot_lines(e1,e2)
     # Wait for all threads to complete
     for t in threads:
         t.join()
     # print "Exiting Main Thread"
-    return W,errors
+    print "errors double random threading:",errors
+    return W_glob, errors
 '''
 for i in range(0,100):
     errors = []

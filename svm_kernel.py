@@ -25,27 +25,27 @@ def fit_svm_kernel(W,X,Y,its=100,eta=1.,C=.1,kernel=(GaussianKernel,(1.)),visual
 	D,N = X.shape[0],X.shape[1]
 	X = sp.vstack((sp.ones((1,N)),X))
 
-
-	errors = []
+	errors_std_loc = []
 	for it in range(its):
+		errors_std_loc.append(test_svm(X,Y,W,kernel)[0])
+		if visualize:
+			#print "discount:",discount
+			plot(errors_std_loc)
+
 		rn = sp.random.randint(N)
 		yhat = predict_svm_kernel(X[:,rn],X,W,kernel)
 		discount = eta/(it+1.)
 		if yhat*Y[:,rn] > 1: G = C * W
 		else: G = C * W - Y[:,rn] * kernel[0](sp.vstack((X[:,rn] )),X,kernel[1]).flatten()
-		W -= discount * G
-		errors.append(test_svm(X,Y,W,kernel)[0])
 
-		if visualize:
-			#print "discount:",discount
-			plot(errors)
-	return W,errors
+		W -= discount * G
+	return W,errors_std_loc
 
 
 '''
 updates with two points only
 '''
-def fit_svm_kernel_double_random(W,X,Y,its=100,eta=1.,C=.1,kernel=(GaussianKernel,(1.)),visualize=False):
+def fit_svm_kernel_double_random(W_drnd, X, Y, its=100, eta=1., C=.1, kernel=(GaussianKernel, (1.)), visualize=False):
 	D,N = X.shape[0],X.shape[1]
 	X = sp.vstack((sp.ones((1,N)),X))
 
@@ -67,17 +67,17 @@ def fit_svm_kernel_double_random(W,X,Y,its=100,eta=1.,C=.1,kernel=(GaussianKerne
 		# 	G = C * W[rn2] - Y[:,rn] * kernel[0](sp.vstack((X[:,rn] )),sp.vstack((X[:,rn2])),kernel[1]).flatten()
 		# W[rn2] -= discount * G
 
-		G,pos = fit_svm_kernel_double_random_one_update(X[:,rn],X[:,rn2],Y[:,rn],W[rn2],rn2,kernel)
-		W[pos] -= discount * G
 		if it%N==0:
 			#compute error
 			#add to error list
-			errors.append(test_svm(X,Y,W,kernel)[0])
+			errors.append(test_svm(X, Y, W_drnd, kernel)[0])
 			if visualize:
 				#print "discount:",discount
 				#plot result
 				plot(errors)
-	return [W,errors]
+		G,pos = fit_svm_kernel_double_random_one_update(X[:,rn],X[:,rn2],Y[:,rn], W_drnd[rn2], rn2, kernel)
+		W_drnd[pos] -= discount * G
+	return [W_drnd, errors]
 
 '''
 parameter update two datapoints

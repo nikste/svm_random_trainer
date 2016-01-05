@@ -21,10 +21,10 @@ def get_settings():
     k = svm_kernel.GaussianKernel
     kparam = 1.
     reg = .001
-    iterations = 100#100
+    iterations = 5#100
 
-    N = 100
-    noise = .25#.1
+    N = 1000
+    noise = .1 #.5
     X,y = svm_kernel.make_data_xor(N, noise)
 
     return [k,kparam,reg,N,noise,X,y,iterations]
@@ -57,61 +57,94 @@ def run_xor_drandom(visualize=False):
     return errors
 
 
+
 if __name__ == '__main__':
+    visualize=True
     plt.ion()
-    visualize=False
-    stds = []
-    drns = []
-    drts = []
     k,kparam,reg,N,noise,X,y,iterations = get_settings()
     X_test,Y_test = svm_kernel.make_data_xor(N, noise)
     W_org = sp.randn(N)
+
     for i in range(0,100):
+        fig0 = plt.figure(0)
+        W_std = W_org.copy()
+        print svm_kernel.test_svm(X_test, Y_test, W_std, (k,(kparam)))[0]
+        w_std,errors_std = svm_kernel.fit_svm_kernel(W_std, X, y, its=iterations, kernel=(k, (kparam)), C=reg, visualize=visualize)
+        save_results("./res/experiments_iterative_random/standard_" + str(i) + ".res",errors_std)
+        # test_error_std = svm_kernel.test_svm(X_test, Y_test, w_std, (k,(kparam)))[0]
+        # print "test_error_std:",test_error_std
 
-        # generate test data:
-        # print i,"standard"
-        W = W_org.copy()
-        print svm_kernel.test_svm(X_test, Y_test, W, (k,(kparam)))[0]
-        w,errors = svm_kernel.fit_svm_kernel(W, X, y, its=iterations, kernel=(k, (kparam)), C=reg, visualize=visualize)
-        save_results("./res/experiments_iterative_random/standard_" + str(i) + ".res",errors)
-        test_error_std = svm_kernel.test_svm(X_test, Y_test, w, (k,(kparam)))[0]
-        # print "error on test set:",test_error_std
+        fig1 = plt.figure(1)
+        W_drnd = W_org.copy()
+        print svm_kernel.test_svm(X_test, Y_test, W_drnd, (k,(kparam)))[0]
+        w_drnd,errors_drnd = svm_kernel.fit_svm_kernel_double_random(W_drnd, X, y, its=iterations * N, kernel=(k, (kparam)), C=reg, visualize=visualize)
+        save_results("./res/experiments_iterative_random/drandom_" + str(i) + ".res",errors_drnd)
+        # test_error_drnd = svm_kernel.test_svm(X_test, Y_test, w_drnd, (k,(kparam)))[0]
+        # print "test_error_drnd:",test_error_drnd
 
-        W = W_org.copy()
-        print svm_kernel.test_svm(X_test, Y_test, W, (k,(kparam)))[0]
-        # print i,"double random"
-        w,errors = svm_kernel.fit_svm_kernel_double_random(W, X, y, its=iterations * N, kernel=(k, (kparam)), C=reg, visualize=visualize)
-        save_results("./res/experiments_iterative_random/drandom_" + str(i) + ".res",errors)
-        test_error_dr = svm_kernel.test_svm(X_test, Y_test, w, (k,(kparam)))[0]
-        # print "error on test set:",test_error_dr
+        fig1 = plt.figure(2)
+        W_drth = W_org.copy()
+        print svm_kernel.test_svm(X_test, Y_test, W_drth, (k,(kparam)))[0]
+        w_drth,errors = fit_svm_kernel_double_random_threading(W_drth, k, kparam, reg, N, noise, X, y, iterations *N , visualize=visualize)
+        test_error_drt,errors_drnt = svm_kernel.test_svm(X_test, Y_test, w_drth, (k,(kparam)))[0]
+        save_results("./res/experiments_iterative_random/drandomthreading_" + str(i) + ".res",errors_drnt)
 
-        W = W_org.copy()
-        print svm_kernel.test_svm(X_test, Y_test, W, (k,(kparam)))[0]
-        # print i,"double random threading"
-        w,errors = fit_svm_kernel_double_random_threading(W, k, kparam, reg, N, noise, X, y, iterations, visualize=visualize)
-        test_error_drt = svm_kernel.test_svm(X_test, Y_test, w, (k,(kparam)))[0]
-        save_results("./res/experiments_iterative_random/drandom_threading_" + str(i) + ".res",errors)
-        # print "error on test set:",test_error_drt
-
-        print "comparison:",i
-        print "std:\t","drn:\t","drt:\t"
-        # print("%.2f\t%.2f\t%.2f" % (test_error_std,test_error_dr,test_error_drt))
-        stds.append(test_error_std)
-        drns.append(test_error_dr)
-        drts.append(test_error_drt)
-
-        print "intermediates:"
-        print "comparison:",i
-
-        print "mean:",np.mean(stds),"std:",np.std(stds)
-        print "mean:",np.mean(drns),"std:",np.std(drns)
-        print "mean:",np.mean(drts),"std:",np.std(drts)
-    print "finals:"
-    print "comparison:",i
-
-    print "mean:",np.mean(stds),"std:",np.std(stds)
-    print "mean:",np.mean(drns),"std:",np.std(drns)
-    print "mean:",np.mean(drts),"std:",np.std(drts)
+# if __name__ == '__main__':
+#     plt.ion()
+#     visualize=True
+#     stds = []
+#     drns = []
+#     drts = []
+#     k,kparam,reg,N,noise,X,y,iterations = get_settings()
+#     X_test,Y_test = svm_kernel.make_data_xor(N, noise)
+#     W_org = sp.randn(N)
+#     for i in range(0,100):
+#         # plt.clf()
+#         # generate test data:
+#         print i,"standard"
+#         W_drth = W_org.copy()
+#         print svm_kernel.test_svm(X_test, Y_test, W_drth, (k,(kparam)))[0]
+#
+#         # W = W_org.copy()
+#         print svm_kernel.test_svm(X_test, Y_test, W, (k,(kparam)))[0]
+#         w,errors_std = svm_kernel.fit_svm_kernel(W, X, y, its=iterations, kernel=(k, (kparam)), C=reg, visualize=visualize)
+#         save_results("./res/experiments_iterative_random/standard_" + str(i) + ".res",errors_std)
+#         test_error_std = svm_kernel.test_svm(X_test, Y_test, w, (k,(kparam)))[0]
+#         # print "error on test set:",test_error_std
+#
+#         W_drnd = W_org.copy()
+#         print svm_kernel.test_svm(X_test, Y_test, W_drnd, (k,(kparam)))[0]
+#         # print i,"double random"
+#         w_drnd,errors = svm_kernel.fit_svm_kernel_double_random(W_drnd, X, y, its=iterations * N, kernel=(k, (kparam)), C=reg, visualize=visualize)
+#         save_results("./res/experiments_iterative_random/drandom_" + str(i) + ".res",errors)
+#         test_error_dr = svm_kernel.test_svm(X_test, Y_test, w_drnd, (k,(kparam)))[0]
+#         # print "error on test set:",test_error_dr
+#
+#         # print "error on test set:",test_error_drt
+#
+#         # print i,"double random threading"
+#         w_drth,errors = fit_svm_kernel_double_random_threading(W_drth, k, kparam, reg, N, noise, X, y, iterations *N , visualize=visualize)
+#         test_error_drt = svm_kernel.test_svm(X_test, Y_test, w_drth, (k,(kparam)))[0]
+#         # save_results("./res/experiments_iterative_random/drandom_threading_" + str(i) + ".res",errors)
+#         print "comparison:",i
+#         print "std:\t","drn:\t","drt:\t"
+#         # print("%.2f\t%.2f\t%.2f" % (test_error_std,test_error_dr,test_error_drt))
+#         # stds.append(test_error_std)
+#         drns.append(test_error_dr)
+#         # drts.append(test_error_drt)
+#
+#         print "intermediates:"
+#         print "comparison:",i
+#
+#         # print "mean:",np.mean(stds),"std:",np.std(stds)
+#         print "mean:",np.mean(drns),"std:",np.std(drns)
+#         # print "mean:",np.mean(drts),"std:",np.std(drts)
+#     print "finals:"
+#     print "comparison:",i
+#
+#     print "mean:",np.mean(stds),"std:",np.std(stds)
+#     # print "mean:",np.mean(drns),"std:",np.std(drns)
+#     print "mean:",np.mean(drts),"std:",np.std(drts)
 
 # if __name__ == '__main__':
 #     plt.ion()
